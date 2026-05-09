@@ -4,7 +4,7 @@ import logging
 
 from telethon import TelegramClient, events
 
-from utils import dotenv_tools, proxy_tools
+from utils import dotenv_tools, proxy_tools, data_tools
 from config import FIRST_SESSION_NAME, SECOND_SESSION_NAME
 
 dotenv_tools.init()
@@ -26,10 +26,39 @@ async def h_global_message(event: events.NewMessage.Event):
     client1_id = (await client1.get_me()).id
 
     if chat_id == client1_id:
-        chat_id = "me"  
+        chat_id = "me" 
+
+    if data_tools.check_ignore(event.message.message):
+        return 
+    answer = data_tools.check_answer(event.message.message)
+    if answer[0]:
+        if answer[1]:
+            await event.reply(answer[1])
+        if answer[2]:
+            await client2.send_message(chat_id, answer[2])
+        return
+
     await client2.send_message(chat_id, event.message.message)
 
+@client2.on(events.NewMessage(chats=chats_to_handle))
+async def h_global_message(event: events.NewMessage.Event):
+    chat_id = (await event.get_chat()).id
+    client2_id = (await client2.get_me()).id
 
+    if chat_id == client2_id:
+        chat_id = "me" 
+
+    if data_tools.check_ignore(event.message.message):
+        return 
+    answer = data_tools.check_answer(event.message.message)
+    print(answer)
+    if answer[0]:
+        if answer[1]:
+            await event.reply(answer[1])
+        if answer[2]:
+            await client1.send_message(chat_id, answer[2])
+        return
+    await client1.send_message(chat_id, event.message.message)
 
 async def main():
     global client1_id, client2_id
@@ -37,8 +66,9 @@ async def main():
     await client1.start()
     await client2.start()
 
-    
-    
+    for chat in chats_to_handle:
+        await client1.send_message(chat, "/next")
+        await client2.send_message(chat, "/next")
 
     logging.basicConfig(level=logging.INFO)
 
