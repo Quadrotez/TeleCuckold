@@ -3,6 +3,7 @@ import asyncio
 import logging
 
 from telethon import TelegramClient, events
+from io import BytesIO
 
 from utils import dotenv_tools, proxy_tools, data_tools, history_tools
 from config import FIRST_SESSION_NAME, SECOND_SESSION_NAME
@@ -19,6 +20,8 @@ client1 = TelegramClient(FIRST_SESSION_NAME, API_ID, API_HASH, proxy=proxy)
 client2 = TelegramClient(SECOND_SESSION_NAME, API_ID, API_HASH, proxy=proxy)
 
 chats_to_handle = os.environ["CHATS_TO_HANDLE"].split()
+
+
 
 async def handle_message(event, source_client, target_client, source_me_id):
     chat_id = (
@@ -37,14 +40,7 @@ async def handle_message(event, source_client, target_client, source_me_id):
         text
     )
 
-    if (
-        event.photo
-        or event.video
-        or event.audio
-        or event.voice
-        or event.video_note
-        or event.sticker
-    ):
+    if message.media:
 
         if text.strip():
             answer = data_tools.check_answer(text)
@@ -61,9 +57,43 @@ async def handle_message(event, source_client, target_client, source_me_id):
             if data_tools.check_ignore(text):
                 return
 
-        file = await source_client.download_media(message, file=bytes)
+        file_bytes = await source_client.download_media(
+            message,
+            file=bytes
+        )
 
-        attrs = message.media.document.attributes if message.media and getattr(message.media, "document", None) else []
+        if event.photo:
+            photo_file = BytesIO(file_bytes)
+            photo_file.name = "photo.jpg"
+
+            await target_client.send_file(
+                chat_id,
+                photo_file,
+                caption=text if text.strip() else None
+            )
+
+            return
+
+        attrs = (
+            message.media.document.attributes
+            if getattr(message.media, "document", None)
+            else []
+        )
+
+        upload_file = BytesIO(file_bytes)
+
+        upload_file.name = (
+            message.file.name
+            or (
+                "voice.ogg"
+                if event.voice
+                else "video_note.mp4"
+                if event.video_note
+                else "sticker.webp"
+                if event.sticker
+                else "file"
+            )
+        )
 
         kwargs = {}
 
@@ -75,9 +105,17 @@ async def handle_message(event, source_client, target_client, source_me_id):
 
         await target_client.send_file(
             chat_id,
-            file,
+            upload_file,
             caption=text if text.strip() else None,
             attributes=attrs,
+            mime_type=message.file.mime_type,
+            force_document=event.document and not (
+                event.video
+                or event.audio
+                or event.voice
+                or event.video_note
+                or event.sticker
+            ),
             **kwargs
         )
 
@@ -98,7 +136,6 @@ async def handle_message(event, source_client, target_client, source_me_id):
         return
 
     await target_client.send_message(chat_id, text)
-
 
 @client1.on(events.NewMessage(chats=chats_to_handle))
 async def handler1(event):
