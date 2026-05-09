@@ -12,5 +12,17 @@
         "answer_r": "/next",
         "answer_m": "/next"
  
+    },
+    {
+        "message": "Диалог остановлен 🤧",
+        "type": "startswith",
+        "answer_r": "/next",
+        "answer_m": "/next"
+    },
+    {
+        "message": "🤚 Cобеседник завершил диалог",
+        "type": "startswith",
+        "answer_r": "/next",
+        "answer_m": "/next"
     }
 ]
