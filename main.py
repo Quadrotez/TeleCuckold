@@ -25,7 +25,7 @@ async def h_global_message(event: events.NewMessage.Event):
     chat_id = (await event.get_chat()).id
     client1_id = (await client1.get_me()).id
 
-    if chat_id == client1_id:\
+    if chat_id == client1_id:
         chat_id = "me"  
     await client2.send_message(chat_id, event.message.message)
 
