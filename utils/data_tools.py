@@ -27,12 +27,12 @@ def check_answer(message: str):
         match msg["type"]:
             case "strict":
                 if message == msg["message"]:
-                    return True, msg["answer_r"], msg["answer_r"]
+                    return True, msg["answer_r"], msg["answer_m"]
             case "startswith":
                 if message.startswith(msg["message"]):
-                    return True, msg["answer"], msg["answer_r"]
+                    return True, msg["answer_r"], msg["answer_m"]
 
             case "endswith":
                 if message.endswith(msg["message"]):
-                    return True, msg["answer"], msg["answer_r"]
+                    return True, msg["answer_r"], msg["answer_m"]
     return False, None

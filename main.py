@@ -4,7 +4,7 @@ import logging
 
 from telethon import TelegramClient, events
 
-from utils import dotenv_tools, proxy_tools, data_tools
+from utils import dotenv_tools, proxy_tools, data_tools, history_tools
 from config import FIRST_SESSION_NAME, SECOND_SESSION_NAME
 
 dotenv_tools.init()
@@ -20,51 +20,106 @@ client2 = TelegramClient(SECOND_SESSION_NAME, API_ID, API_HASH, proxy=proxy)
 
 chats_to_handle = os.environ["CHATS_TO_HANDLE"].split()
 
-@client1.on(events.NewMessage(chats=chats_to_handle))
-async def h_global_message(event: events.NewMessage.Event):
-    chat_id = (await event.get_chat()).id
-    client1_id = (await client1.get_me()).id
+async def handle_message(event, source_client, target_client, source_me_id):
+    chat_id = (
+        "me"
+        if event.chat_id == source_me_id
+        else event.chat_id
+    )
 
-    if chat_id == client1_id:
-        chat_id = "me" 
+    message = event.message
+    text = event.raw_text or ""
 
-    if data_tools.check_ignore(event.message.message):
-        return 
-    answer = data_tools.check_answer(event.message.message)
-    if answer[0]:
-        if answer[1]:
-            await event.reply(answer[1])
-        if answer[2]:
-            await client2.send_message(chat_id, answer[2])
+    history_tools.add_message(
+        FIRST_SESSION_NAME
+        if source_client == client1
+        else SECOND_SESSION_NAME,
+        text
+    )
+
+    if (
+        event.photo
+        or event.video
+        or event.audio
+        or event.voice
+        or event.video_note
+        or event.sticker
+    ):
+
+        if text.strip():
+            answer = data_tools.check_answer(text)
+
+            if answer[0]:
+                if answer[1]:
+                    await source_client.send_message(chat_id, answer[1])
+
+                if answer[2]:
+                    await target_client.send_message(chat_id, answer[2])
+
+                return
+
+            if data_tools.check_ignore(text):
+                return
+
+        file = await source_client.download_media(message, file=bytes)
+
+        attrs = message.media.document.attributes if message.media and getattr(message.media, "document", None) else []
+
+        kwargs = {}
+
+        if event.voice:
+            kwargs["voice_note"] = True
+
+        if event.video_note:
+            kwargs["video_note"] = True
+
+        await target_client.send_file(
+            chat_id,
+            file,
+            caption=text if text.strip() else None,
+            attributes=attrs,
+            **kwargs
+        )
+
         return
 
-    await client2.send_message(chat_id, event.message.message)
+    answer = data_tools.check_answer(text)
+
+    if answer[0]:
+        if answer[1]:
+            await source_client.send_message(chat_id, answer[1])
+
+        if answer[2]:
+            await target_client.send_message(chat_id, answer[2])
+
+        return
+
+    if data_tools.check_ignore(text):
+        return
+
+    await target_client.send_message(chat_id, text)
+
+
+@client1.on(events.NewMessage(chats=chats_to_handle))
+async def handler1(event):
+    await handle_message(event, client1, client2, client1_me_id)
+
 
 @client2.on(events.NewMessage(chats=chats_to_handle))
-async def h_global_message(event: events.NewMessage.Event):
-    chat_id = (await event.get_chat()).id
-    client2_id = (await client2.get_me()).id
+async def handler2(event):
+    await handle_message(event, client2, client1, client2_me_id)
 
-    if chat_id == client2_id:
-        chat_id = "me" 
-
-    if data_tools.check_ignore(event.message.message):
-        return 
-    answer = data_tools.check_answer(event.message.message)
-    print(answer)
-    if answer[0]:
-        if answer[1]:
-            await event.reply(answer[1])
-        if answer[2]:
-            await client1.send_message(chat_id, answer[2])
-        return
-    await client1.send_message(chat_id, event.message.message)
+client1_me_id = None
+client2_me_id = None
 
 async def main():
-    global client1_id, client2_id
+    global client1_me_id, client2_me_id
 
     await client1.start()
     await client2.start()
+
+    client1_me_id = (await client1.get_me()).id
+    client2_me_id = (await client2.get_me()).id
 
     for chat in chats_to_handle:
         await client1.send_message(chat, "/next")

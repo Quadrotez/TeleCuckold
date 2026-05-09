@@ -22,5 +22,9 @@
     {
         "message": "Напишите /search чтобы искать собеседника",
         "type": "startswith"
+    },
+    {
+        "message": "Ищем собеседника",
+        "type": "startswith"
     }
 ]

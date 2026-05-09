@@ -5,5 +5,12 @@
         "answer_r": "/next",
         "answer_m": "/next"
  
+    },
+    {
+        "message": "Собеседник закончил с вами связь 😞\nНапишите /search чтобы найти следующего",
+        "type": "startswith",
+        "answer_r": "/next",
+        "answer_m": "/next"
+ 
     }
 ]
