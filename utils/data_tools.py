@@ -6,6 +6,7 @@ with open("data/ignore.json", "r") as f:
 with open("data/answer.json", "r") as f:
     answer = json.loads(f.read())
 
+
 def check_ignore(message: str) -> bool:
     for msg in ignore:
         match msg["type"]:
@@ -21,9 +22,9 @@ def check_ignore(message: str) -> bool:
                     return True
     return False
 
+
 def check_answer(message: str):
     for msg in answer:
-        
         match msg["type"]:
             case "strict":
                 if message == msg["message"]:
