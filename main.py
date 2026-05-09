@@ -1,5 +1,5 @@
 import os
-
+import logging
 
 from telethon import TelegramClient, events
 
@@ -16,9 +16,14 @@ if proxy:
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH, proxy=proxy)
 
-@client.on(events.NewMessage)
-async def my_ev_hand(event: events.NewMessage.Event):
+chats_to_handle = ("me")
+
+@client.on(events.NewMessage(chats=chats_to_handle))
+async def h_global_message(event: events.NewMessage.Event):
     await event.reply(event.message.message)
 
+logging.basicConfig(level=logging.INFO)
+
 client.start()
+logging.log(msg="Клиент запущен", level=logging.INFO)
 client.run_until_disconnected()
