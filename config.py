@@ -1,2 +1,3 @@
 DOTENV_FILE_PATH=".env"
-SESSION_NAME="session"
+FIRST_SESSION_NAME="session1"
+SECOND_SESSION_NAME="session2"
