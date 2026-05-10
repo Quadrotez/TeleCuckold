@@ -22,26 +22,17 @@ client2 = TelegramClient(SECOND_SESSION_NAME, API_ID, API_HASH, proxy=proxy)
 chats_to_handle = os.environ["CHATS_TO_HANDLE"].split()
 
 
-
 async def handle_message(event, source_client, target_client, source_me_id):
-    chat_id = (
-        "me"
-        if event.chat_id == source_me_id
-        else event.chat_id
-    )
+    chat_id = "me" if event.chat_id == source_me_id else event.chat_id
 
     message = event.message
     text = event.raw_text or ""
 
     history_tools.add_message(
-        FIRST_SESSION_NAME
-        if source_client == client1
-        else SECOND_SESSION_NAME,
-        text
+        FIRST_SESSION_NAME if source_client == client1 else SECOND_SESSION_NAME, text
     )
 
     if message.media:
-
         if text.strip():
             answer = data_tools.check_answer(text)
 
@@ -57,19 +48,14 @@ async def handle_message(event, source_client, target_client, source_me_id):
             if data_tools.check_ignore(text):
                 return
 
-        file_bytes = await source_client.download_media(
-            message,
-            file=bytes
-        )
+        file_bytes = await source_client.download_media(message, file=bytes)
 
         if event.photo:
             photo_file = BytesIO(file_bytes)
             photo_file.name = "photo.jpg"
 
             await target_client.send_file(
-                chat_id,
-                photo_file,
-                caption=text if text.strip() else None
+                chat_id, photo_file, caption=text if text.strip() else None
             )
 
             return
@@ -82,17 +68,14 @@ async def handle_message(event, source_client, target_client, source_me_id):
 
         upload_file = BytesIO(file_bytes)
 
-        upload_file.name = (
-            message.file.name
-            or (
-                "voice.ogg"
-                if event.voice
-                else "video_note.mp4"
-                if event.video_note
-                else "sticker.webp"
-                if event.sticker
-                else "file"
-            )
+        upload_file.name = message.file.name or (
+            "voice.ogg"
+            if event.voice
+            else "video_note.mp4"
+            if event.video_note
+            else "sticker.webp"
+            if event.sticker
+            else "file"
         )
 
         kwargs = {}
@@ -109,14 +92,15 @@ async def handle_message(event, source_client, target_client, source_me_id):
             caption=text if text.strip() else None,
             attributes=attrs,
             mime_type=message.file.mime_type,
-            force_document=event.document and not (
+            force_document=event.document
+            and not (
                 event.video
                 or event.audio
                 or event.voice
                 or event.video_note
                 or event.sticker
             ),
-            **kwargs
+            **kwargs,
         )
 
         return
@@ -137,6 +121,7 @@ async def handle_message(event, source_client, target_client, source_me_id):
 
     await target_client.send_message(chat_id, text)
 
+
 @client1.on(events.NewMessage(chats=chats_to_handle))
 async def handler1(event):
     await handle_message(event, client1, client2, client1_me_id)
@@ -146,8 +131,10 @@ async def handler1(event):
 async def handler2(event):
     await handle_message(event, client2, client1, client2_me_id)
 
+
 client1_me_id = None
 client2_me_id = None
+
 
 async def main():
     global client1_me_id, client2_me_id
@@ -166,9 +153,9 @@ async def main():
 
     logging.log(msg="Клиенты запущены   ", level=logging.INFO)
     await asyncio.gather(
-        client1.run_until_disconnected(),
-        client2.run_until_disconnected()
+        client1.run_until_disconnected(), client2.run_until_disconnected()
     )
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -36,4 +36,4 @@ def check_answer(message: str):
             case "endswith":
                 if message.endswith(msg["message"]):
                     return True, msg["answer_r"], msg["answer_m"]
-    return False, None
+    return False, None, None
